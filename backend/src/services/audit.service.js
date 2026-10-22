@@ -1,0 +1,1 @@
+const prisma=require("../config/database");const log=async({userId,action,resource,resourceId,description,severity="INFO",ipAddress,metadata})=>{try{await prisma.auditLog.create({data:{userId,action,resource,resourceId,description,severity,ipAddress,metadata:metadata?JSON.stringify(metadata):undefined}});}catch(e){}};module.exports={log};

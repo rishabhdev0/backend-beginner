@@ -1,0 +1,10 @@
+const r=require("express").Router(),prisma=require("../config/database"),{authenticate,adminOnly}=require("../middleware/auth.middleware"),{success}=require("../utils/response");
+r.use(authenticate,adminOnly);
+r.get("/dashboard",async(req,res)=>{const[logs,flagged]=await Promise.all([prisma.fraudLog.findMany({orderBy:{createdAt:"desc"},take:50}),prisma.voter.count({where:{isFlagged:true}})]);const unresolved=logs.filter(l=>!l.isResolved).length;return success(res,{recentLogs:logs,summary:{unresolvedAlerts:unresolved,flaggedVoters:flagged,flaggedIPs:0,bySeverity:logs.reduce((a,l)=>({...a,[l.severity]:(a[l.severity]||0)+1}),{})}})});
+r.get("/logs",async(req,res)=>{const{page=1,limit=10,severity}=req.query;const where={};if(severity)where.severity=severity;const[data,total]=await Promise.all([prisma.fraudLog.findMany({where,skip:(+page-1)*+limit,take:+limit,orderBy:{createdAt:"desc"}}),prisma.fraudLog.count({where})]);return success(res,{data,pagination:{total,pages:Math.ceil(total/+limit)}})});
+r.put("/logs/:id/resolve",async(req,res)=>{await prisma.fraudLog.update({where:{id:req.params.id},data:{isResolved:true,resolvedBy:req.user.id,resolvedAt:new Date()}});return success(res,{},"Resolved")});
+r.get("/anomalies",async(req,res)=>success(res,{data:[],pagination:{total:0}}));
+r.get("/emergency",async(req,res)=>success(res,{systemPaused:false,unresolvedCritical:await prisma.fraudLog.count({where:{severity:"CRITICAL",isResolved:false}})}));
+r.post("/emergency/pause",async(req,res)=>{await prisma.auditLog.create({data:{action:"SYSTEM_PAUSED",description:req.body.reason,severity:"CRITICAL",userId:req.user.id}});return success(res,{},"Paused")});
+r.get("/voters/flagged",async(req,res)=>{const data=await prisma.voter.findMany({where:{isFlagged:true},take:20});return success(res,{data})});
+module.exports=r;

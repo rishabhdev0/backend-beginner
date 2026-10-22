@@ -1,0 +1,168 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+model User {
+  id String @id @default(cuid())
+  email String? @unique
+  phone String? @unique
+  passwordHash String?
+  role String @default("VOTER")
+  walletAddress String? @unique
+  isEmailVerified Boolean @default(false)
+  isPhoneVerified Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  voter Voter?
+  notifications Notification[]
+  auditLogs AuditLog[]
+}
+model Voter {
+  id String @id @default(cuid())
+  userId String @unique
+  user User @relation(fields:[userId],references:[id])
+  firstName String
+  lastName String
+  dateOfBirth DateTime
+  age Int?
+  gender String?
+  constituency String
+  voterIdNumber String?
+  walletAddress String? @unique
+  status String @default("PENDING")
+  faceVerified Boolean @default(false)
+  idVerified Boolean @default(false)
+  livenessVerified Boolean @default(false)
+  faceMatchScore Float?
+  riskScore Int @default(0)
+  isFlagged Boolean @default(false)
+  flagReason String?
+  isBlacklisted Boolean @default(false)
+  blacklistReason String?
+  blacklistedAt DateTime?
+  nftTokenId String?
+  nftTier String @default("BRONZE")
+  blockchainTxHash String?
+  identityHash String?
+  rejectionReason String?
+  registeredAt DateTime @default(now())
+  verifiedAt DateTime?
+  votes Vote[]
+}
+model Election {
+  id String @id @default(cuid())
+  title String
+  description String?
+  constituency String
+  status String @default("DRAFT")
+  blockchainId Int?
+  startTime DateTime
+  endTime DateTime
+  totalRegistered Int @default(0)
+  totalVotesCast Int @default(0)
+  merkleRoot String?
+  blockchainTxHash String?
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  candidates Candidate[]
+  votes Vote[]
+}
+model Candidate {
+  id String @id @default(cuid())
+  electionId String
+  election Election @relation(fields:[electionId],references:[id])
+  name String
+  party String
+  constituency String?
+  manifesto String?
+  photoUrl String?
+  blockchainId Int?
+  isActive Boolean @default(true)
+  voteCount Int @default(0)
+  createdAt DateTime @default(now())
+  votes Vote[]
+}
+model Vote {
+  id String @id @default(cuid())
+  electionId String
+  election Election @relation(fields:[electionId],references:[id])
+  voterId String
+  voter Voter @relation(fields:[voterId],references:[id])
+  candidateId String
+  candidate Candidate @relation(fields:[candidateId],references:[id])
+  voteHash String? @unique
+  receiptHash String? @unique
+  salt String?
+  commitment String?
+  nullifier String?
+  status String @default("PENDING")
+  blockchainTxHash String?
+  ipAddress String?
+  deviceId String?
+  constituency String?
+  zkpVerified Boolean @default(false)
+  castAt DateTime @default(now())
+  confirmedAt DateTime?
+  @@unique([voterId, electionId])
+}
+model FraudLog {
+  id String @id @default(cuid())
+  electionId String?
+  voterId String?
+  fraudType String
+  description String
+  severity String @default("MEDIUM")
+  riskScore Int @default(0)
+  ipAddress String?
+  metadata Json?
+  isResolved Boolean @default(false)
+  resolvedBy String?
+  resolvedAt DateTime?
+  createdAt DateTime @default(now())
+}
+model AuditLog {
+  id String @id @default(cuid())
+  userId String?
+  user User? @relation(fields:[userId],references:[id])
+  action String
+  resource String?
+  resourceId String?
+  description String?
+  severity String @default("INFO")
+  ipAddress String?
+  metadata Json?
+  createdAt DateTime @default(now())
+}
+model Dispute {
+  id String @id @default(cuid())
+  title String
+  description String
+  disputeType String @default("OTHER")
+  status String @default("FILED")
+  isPublic Boolean @default(true)
+  resolution String?
+  actionTaken String?
+  evidenceCount Int @default(0)
+  supportVotes Int @default(0)
+  oppositionVotes Int @default(0)
+  resolvedAt DateTime?
+  createdAt DateTime @default(now())
+}
+model Notification {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields:[userId],references:[id])
+  type String
+  title String
+  message String
+  isRead Boolean @default(false)
+  metadata Json?
+  createdAt DateTime @default(now())
+}
+model BlockchainSync {
+  id String @id @default(cuid())
+  contractName String @unique
+  lastSyncedBlock Int @default(0)
+  lastSyncedAt DateTime?
+  isSyncing Boolean @default(false)
+  syncErrors Int @default(0)
+}

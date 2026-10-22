@@ -1,0 +1,8 @@
+const r=require("express").Router(),prisma=require("../config/database"),{authenticate,adminOnly}=require("../middleware/auth.middleware"),{success,badRequest,notFound}=require("../utils/response");
+r.use(authenticate);
+r.get("/mine",async(req,res)=>{const data=await prisma.dispute.findMany({orderBy:{createdAt:"desc"}});return success(res,{disputes:data,total:data.length})});
+r.post("/",async(req,res)=>{const{title,description,disputeType="OTHER",isPublic=true}=req.body;if(!title||!description)return badRequest(res,"Title and description required");const d=await prisma.dispute.create({data:{title,description,disputeType,isPublic,status:"FILED"}});return success(res,d,"Filed",201)});
+r.get("/",adminOnly,async(req,res)=>{const{status,page=1,limit=10}=req.query;const where={};if(status)where.status=status;const[data,total]=await Promise.all([prisma.dispute.findMany({where,skip:(+page-1)*+limit,take:+limit,orderBy:{createdAt:"desc"}}),prisma.dispute.count({where})]);return success(res,{disputes:data,total})});
+r.get("/:id",async(req,res)=>{const d=await prisma.dispute.findUnique({where:{id:req.params.id}});if(!d)return notFound(res);return success(res,{...d,evidence:[]})});
+r.put("/:id/resolve",adminOnly,async(req,res)=>{const{finalStatus,resolution,actionTaken}=req.body;await prisma.dispute.update({where:{id:req.params.id},data:{status:finalStatus,resolution,actionTaken:actionTaken||undefined,resolvedAt:new Date()}});return success(res,{},"Resolved")});
+module.exports=r;

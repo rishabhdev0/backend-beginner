@@ -1,0 +1,1 @@
+const w=require("winston");const l=w.createLogger({level:"info",format:w.format.combine(w.format.timestamp({format:"YYYY-MM-DD HH:mm:ss"}),w.format.colorize(),w.format.printf(({timestamp:t,level:lv,message:m})=>`${t} [${lv}]: ${m}`)),transports:[new w.transports.Console()]});module.exports=l;

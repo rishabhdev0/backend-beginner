@@ -1,0 +1,1 @@
+const preVoteCheck=async(req,voter)=>{if(voter.isBlacklisted)return{blocked:true,reason:"Blacklisted"};if(voter.riskScore>90)return{blocked:true,reason:"Risk score too high"};return{blocked:false};};module.exports={preVoteCheck};

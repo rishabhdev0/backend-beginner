@@ -1,0 +1,1 @@
+const prisma=require("../config/database");const sendNotification=async({userId,type,title,message,metadata})=>{try{await prisma.notification.create({data:{userId,type,title,message,metadata:metadata?JSON.stringify(metadata):undefined}});}catch(e){}};module.exports={sendNotification,sendInApp:sendNotification};
